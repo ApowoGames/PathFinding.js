@@ -46,30 +46,12 @@ function AStarFinder(opt) {
     }
 }
 
-/**
- * Find and return the the path.
- * @return {Array<Array<number>>} The path, including both start and
- *     end positions.
- */
-AStarFinder.prototype.findPath = function(startX, startY, endX, endY, grid) {
-    var openList = new Heap(function(nodeA, nodeB) {
-            return nodeA.f - nodeB.f;
-        }),
-        startNode = grid.getNodeAt(startX, startY),
-        endNode = grid.getNodeAt(endX, endY),
-        heuristic = this.heuristic,
-        diagonalMovement = this.diagonalMovement,
-        weight = this.weight,
-        abs = Math.abs, SQRT2 = Math.SQRT2,
-        node, neighbors, neighbor, i, l, x, y, ng;
-
-    // set the `g` and `f` value of the start node to be 0
-    startNode.g = 0;
-    startNode.f = 0;
-
-    // push the start node into the open list
-    openList.push(startNode);
-    startNode.opened = true;
+AStarFinder.prototype._findPath = function(openList, endNode, grid) {
+    let heuristic = this.heuristic,
+    diagonalMovement = this.diagonalMovement,
+    weight = this.weight,
+    abs = Math.abs, SQRT2 = Math.SQRT2,
+    node, neighbors, neighbor, i, l, x, y, ng;
 
     // while the open list is not empty
     while (!openList.empty()) {
@@ -102,7 +84,7 @@ AStarFinder.prototype.findPath = function(startX, startY, endX, endY, grid) {
             // can be reached with smaller cost from the current node
             if (!neighbor.opened || ng < neighbor.g) {
                 neighbor.g = ng;
-                neighbor.h = neighbor.h || weight * heuristic(abs(x - endX), abs(y - endY));
+                neighbor.h = neighbor.h || weight * heuristic(abs(x - endNode.x), abs(y - endNode.y));
                 neighbor.f = neighbor.g + neighbor.h;
                 neighbor.parent = node;
 
@@ -121,6 +103,56 @@ AStarFinder.prototype.findPath = function(startX, startY, endX, endY, grid) {
 
     // fail to find the path
     return [];
+}
+
+/**
+ * Find and return the the path.
+ * @return {Array<Array<number>>} The path, including both start and
+ *     end positions.
+ */
+AStarFinder.prototype.findPath = function(startX, startY, endX, endY, grid) {
+    var openList = new Heap(function(nodeA, nodeB) {
+            return nodeA.f - nodeB.f;
+        }),
+        startNode = grid.getNodeAt(startX, startY),
+        endNode = grid.getNodeAt(endX, endY);
+
+
+    // set the `g` and `f` value of the start node to be 0
+    startNode.g = 0;
+    startNode.f = 0;
+
+    // push the start node into the open list
+    openList.push(startNode);
+    startNode.opened = true;
+
+    return this._findPath(openList, endNode, grid);
 };
+
+AStarFinder.prototype.findPathToMultipleEnds = function(startX, startY, endPoints, grid, toReverse) {
+    var openList = new Heap(function(nodeA, nodeB) {
+        return nodeA.f - nodeB.f;
+    });
+
+    // reverse the points
+    endNode = grid.getNodeAt(startX, startY),
+
+    endPoints.forEach(p => {
+        let n = grid.getNodeAt(p.x, p.y);
+        // set the `g` and `f` value of the start node to be 0
+        n.g = 0;
+        n.f = 0;
+
+        // push the start node into the open list
+        openList.push(n);
+        n.opened = true;    
+    });
+
+    var result = this._findPath(openList,endNode, grid); // 因为是反向寻路，所以如果不是 reverse 的情况下应该反过来
+    if (!toReverse) {
+        result = result.reverse();
+    }
+    return result;
+}
 
 module.exports = AStarFinder;
